@@ -3,8 +3,8 @@ Open a terminal or command prompt and run the following commands:
 
 bash
 Copy code
-git clone https://github.com/Lead360LTD/Scraper.git
-cd Scraper
+git clone https://github.com/Lead360LTD/Google-Maps-Scraper-chrome.git
+cd Google-Maps-Scraper-chrome
 Install ChromeDriver
 
 Download the appropriate version of ChromeDriver for your installed Chrome browser version from ChromeDriver Downloads.
