@@ -1,18 +1,18 @@
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import time
-import pandas as pd
+import csv
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.common.exceptions import ElementClickInterceptedException, NoSuchElementException
 
-filename = "data"
+filename = "data.csv"
 link = "https://www.google.com/maps/search/aesthetic+clinic+in+Windsor,+ON/@42.3149,-83.0364,12z"
 
 browser = webdriver.Chrome()
 record = []
-e = []
+processed_names = set()  # Use a set to track processed names
 
 def Selenium_extractor():
   le = 0
@@ -49,43 +49,46 @@ def Selenium_extractor():
     time.sleep(2)
     source = browser.page_source
     soup = BeautifulSoup(source, 'html.parser')
+    
     try:
-      Name_Html = soup.findAll('h1', {"class": "DUwDvf fontHeadlineLarge"})
-      print(f"Names found: {len(Name_Html)}")
+      # Extract business name
+      name_html = soup.find('h1', {"class": "DUwDvf lfPIob"})
+      name = name_html.text if name_html else "Not available"
+      print(f"Name: {name}")
 
-      if not Name_Html:
-        print("No more names found, continuing to write data.")
-        continue
-
-      name = Name_Html[0].text
-      if name not in e:
-        e.append(name)
-        divs = soup.findAll('div', {"class": "Io6YTe fontBodyMedium"})
-        print(f"Details found: {len(divs)}")
+      if name not in processed_names:
+        processed_names.add(name)
+        
+        # Extract phone number and address
+        divs = soup.findAll('div', {"class": "Io6YTe fontBodyMedium kR99db fdkmkc"})
         phone = "Not available"
-        for j in range(len(divs)):
-          if str(divs[j].text)[0] == "+":
-            phone = divs[j].text
+        address = "Not available"
 
-        Address_Html = divs[0]
-        address = Address_Html.text
-        website = "Not available"
-        try:
-          for z in range(len(divs)):
-            if str(divs[z].text)[-4] == "." or str(divs[z].text)[-3] == ".":
-              website = divs[z].text
-        except:
-          pass
-        print([name, phone, address, website])
-        record.append((name, phone, address, website))
+        for div in divs:
+          text = div.text
+          if text.startswith("+"):
+            phone = text
+          elif "," in text:  # Assuming address contains commas
+            address = text
+
+        # Extract website
+        website_html = soup.find('a', {"class": "CsEnBe"})
+        website = website_html['aria-label'].replace("Website: ", "") if website_html else "Not available"
+
+        print(f"Scraped: {name}, {phone}, {address}, {website}")
+        record.append([name, phone, address, website])
     except Exception as e:
       print(f"Error processing element: {e}")
       continue
 
-  df = pd.DataFrame(record, columns=['Name', 'Phone number', 'Address', 'Website'])
-  df.to_csv(filename, index=False, encoding='utf-8')
+  # Write data to CSV
+  with open(filename, 'w', newline='', encoding='utf-8') as f:
+    writer = csv.writer(f)
+    writer.writerow(['Name', 'Phone number', 'Address', 'Website'])
+    writer.writerows(record)
   print(f"Data written to {filename}")
 
 browser.get(str(link))
 time.sleep(10)
 Selenium_extractor()
+browser.quit()
